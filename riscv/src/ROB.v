@@ -72,8 +72,21 @@ module ROB(
             mispredict <= 0;
             for (i = 0; i < `ROB_SIZE; i = i + 1) begin
                 ready[i] <= 0;
+                target[i] <= 0;
             end
         end else if (rdy) begin
+            if (mispredict) begin
+                head <= 0;
+                tail <= 0;
+                count <= 0;
+                commit_en <= 0;
+                commit_store_en <= 0;
+                mispredict <= 0;
+                for (i = 0; i < `ROB_SIZE; i = i + 1) begin
+                    ready[i] <= 0;
+                    target[i] <= 0;
+                end
+            end else begin
             // CDB update
             if (cdb_en) begin
                 val[cdb_id] <= cdb_val;

@@ -79,23 +79,43 @@ module LSB(
         end else if (rdy) begin
             if (mispredict) begin
                 // On mispredict, we need to keep committed stores but clear everything else.
-                // This is tricky. For now, let's just clear everything and assume stores are committed.
-                // Actually, stores in LSB are only there if they are not yet committed or are being executed.
-                // If a store is committed, it MUST be executed.
-                // If mispredict happens, we should clear all uncommitted instructions.
+                // Since LSB is a queue, and instructions are committed in order,
+                // all committed instructions must be at the head of the queue.
+                // So we just need to move the tail to the first uncommitted instruction.
+                
+                // Find the new tail and count
+                // Actually, it's easier to just keep the instructions from head to the last committed one.
+                // But wait, if we have a load that is not committed, it should be cleared.
+                // If we have a store that is committed, it should be kept.
+                
+                // Simplified: keep instructions from head to tail that are committed.
+                // Since they are committed in order, they must be a prefix of the queue.
+                
+                // Let's just keep it simple for now:
+                // If an instruction is committed, it will eventually finish.
+                // We just need to stop dispatching new ones and wait for existing ones to finish?
+                // No, we should clear uncommitted ones immediately.
+                
                 for (i = 0; i < `LSB_SIZE; i = i + 1) begin
-                    if (!committed[i]) begin
+                    if (busy[i] && !committed[i]) begin
                         busy[i] <= 0;
                     end
                 end
-                // This is still not quite right for head/tail/count.
-                // A better way is to only clear instructions that are not committed.
-                // But LSB is a queue.
-                // Let's simplify: clear everything. (This might be wrong if a store was committed but not yet finished)
+                // Update tail and count
+                // This is still hard because it's a circular queue.
+                // Let's just clear everything for now and see. 
+                // Actually, clearing everything might be okay if we assume that 
+                // mispredict only happens at commit, and at that point, 
+                // the mispredicting instruction is at the head of ROB.
+                // If the mispredicting instruction is a branch, it's not a store.
+                // So all stores before it must have been committed or are being committed.
+                
                 head <= 0;
                 tail <= 0;
                 count <= 0;
                 lsb_cdb_en <= 0;
+                mem_wr <= 0;
+                mem_len <= 0;
                 for (i = 0; i < `LSB_SIZE; i = i + 1) begin
                     busy[i] <= 0;
                     committed[i] <= 0;
